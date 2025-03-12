@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<scenario>
+    <robot name="Enterprise" fixed="false" self_collisions="false">
+        <base_link name="Base" type="model" physics="floating">
+            <physical>
+                <mesh filename="csei/csei.obj" scale="1.0"/>
+                <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+            </physical>
+            <visual>
+                <mesh filename="csei/csei.obj" scale="1.0"/>
+                <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+            </visual>
+            <material name="voyager"/>
+            <look name="Red"/>
+        </base_link>
+
+        <world_transform xyz="1.0 1.0 0.0" rpy="0.0 0.0 0.0"/>
+    </robot>
+</scenario>

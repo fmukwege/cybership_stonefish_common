@@ -1,0 +1,120 @@
+<?xml version="1.0"?>
+<scenario>
+    <robot name="Voyager" fixed="false" self_collisions="false">
+        <base_link name="Base" type="model" physics="floating">
+            <physical>
+                <mesh filename="voyager/cs_voyager.obj" scale="1.0"/>
+                <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14"/>
+            </physical>
+            <visual>
+                <mesh filename="voyager/cs_voyager.obj" scale="1.0"/>
+                <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14"/>
+            </visual>
+            <material name="voyager"/>
+            <look name="Yellow"/>
+        </base_link>
+
+        <link name="azimuth_port" type="cylinder">
+            <dimensions radius="0.003" height="0.075"/>
+            <material name="Neutral"/>
+            <look name="Black"/>
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+        </link>
+
+        <joint name="azimuth_port_joint" type="revolute">
+            <parent name="Base"/>
+            <child name="azimuth_port"/>
+            <axis xyz="0.0 0.0 1.0"/>
+            <origin xyz="-0.4574 -0.055 0.06" rpy="0 0 0"/>
+        </joint>
+
+        <actuator name="azimuth_port_servo" type="servo">
+            <joint name="azimuth_port_joint"/>
+            <controller position_gain="2.0" velocity_gain="1.0" max_torque="1.0" max_velocity="4.5"/>
+            <!-- <initial position="-0.78"/> -->
+        </actuator>
+
+        <actuator name="azimuth_port_thruster" type="thruster">
+            <link name="azimuth_port"/>
+            <origin xyz="0.005 0.0 0.02" rpy="0 0 0"/>
+            <specs max_setpoint="850.0" inverted_setpoint="false" normalized_setpoint="false"/>
+            <propeller diameter="0.1" right="true">
+                <mesh filename="voyager/prop.obj" scale="1.0"/>
+                <material name="Neutral"/>
+                <look name="Gray"/>
+            </propeller>
+            <rotor_dynamics type="zero_order"/>
+            <thrust_model type="linear_interpolation">
+                <!-- This is supposed to be rps-thrust mapping, but for now it is thrust-thrust-->
+                <input value="-40.0 -30.0 -20.0 -10.0 0.0 10.0 20.0 30.0 40.0"/>
+                <output value="-40.0 -30.0 -20.0 -10.0 0.0 10.0 20.0 30.0 40.0"/>
+            </thrust_model>
+        </actuator>
+
+        <link name="azimuth_starboard" type="cylinder">
+            <dimensions radius="0.003" height="0.075"/>
+            <material name="Neutral"/>
+            <look name="Black"/>
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+        </link>
+
+        <joint name="azimuth_starboard_joint" type="revolute">
+            <parent name="Base"/>
+            <child name="azimuth_starboard"/>
+            <axis xyz="0.0 0.0 1.0"/>
+            <origin xyz="-0.4574 0.055 0.06" rpy="0 0 0"/>
+        </joint>
+
+        <actuator name="azimuth_starboard_servo" type="servo">
+            <joint name="azimuth_starboard_joint"/>
+            <controller position_gain="2.0" velocity_gain="1.0" max_torque="1.0" max_velocity="4.5"/>
+            <!-- <initial position="-0.78"/> -->
+        </actuator>
+
+        <actuator name="azimuth_starboard_thruster" type="thruster">
+            <link name="azimuth_starboard"/>
+            <origin xyz="0.005 0.0 0.02" rpy="0 0 0"/>
+            <specs max_setpoint="850.0" inverted_setpoint="false" normalized_setpoint="false"/>
+            <propeller diameter="0.1" right="true">
+                <mesh filename="voyager/prop.obj" scale="1.0"/>
+                <material name="Neutral"/>
+                <look name="Gray"/>
+            </propeller>
+            <rotor_dynamics type="zero_order"/>
+            <thrust_model type="linear_interpolation">
+                <!-- This is supposed to be rps-thrust mapping, but for now it is thrust-thrust-->
+                <input value="-40.0 -30.0 -20.0 -10.0 0.0 10.0 20.0 30.0 40.0"/>
+                <output value="-40.0 -30.0 -20.0 -10.0 0.0 10.0 20.0 30.0 40.0"/>
+            </thrust_model>
+        </actuator> 
+
+        <actuator name="tunnel_thruster" type="thruster">
+            <link name="Base"/>
+            <origin xyz="0.3875 0.0 0.05" rpy="0 0 1.57"/>
+            <specs max_setpoint="850.0" inverted_setpoint="false" normalized_setpoint="false"/>
+            <propeller diameter="0.1" right="true">
+                <mesh filename="voyager/prop.obj" scale="0.7"/>
+                <material name="Neutral"/>
+                <look name="Gray"/>
+            </propeller>
+            <rotor_dynamics type="zero_order"/>
+            <thrust_model type="linear_interpolation">
+                <!-- This is supposed to be rps-thrust mapping, but for now it is thrust-thrust-->
+                <input value="-40.0 -30.0 -20.0 -10.0 0.0 10.0 20.0 30.0 40.0"/>
+                <output value="-40.0 -30.0 -20.0 -10.0 0.0 10.0 20.0 30.0 40.0"/>
+            </thrust_model>
+        </actuator>
+
+        <sensor name="odom" type="odometry" rate="10.0">
+            <link name="Base"/>
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+            <ros_publisher topic="/voyager/odom"/>
+        </sensor>
+
+        <world_transform xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+
+        <ros_subscriber thrusters="/voyager/thrusters" servos="/voyager/servos"/>
+        <ros_publisher thrusters="/voyager/thruster_state" servos="/voyager/servo_state"/>
+    </robot>
+</scenario>
+        
