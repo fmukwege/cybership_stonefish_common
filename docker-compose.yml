@@ -1,0 +1,15 @@
+services:
+  voyager:
+    profiles: ["voyager"]
+    build:
+      args:
+        ROS_DISTRO: humble
+      context: .
+      dockerfile: Dockerfile
+    command: ros2 launch cybership_simulation_common simulation_nogpu.launch.py
+    network_mode: host
+    ipc: host
+    pid: host
+    privileged: true
+
+
