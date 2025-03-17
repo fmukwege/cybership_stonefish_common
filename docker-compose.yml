@@ -11,5 +11,15 @@ services:
     ipc: host
     pid: host
     privileged: true
+  stonefish_interface:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python3", "/scripts/stonefish_interface.py"]
+    volumes:
+      - ./scripts:/scripts
+    depends_on:
+      - voyager
+    network_mode: host
 
 

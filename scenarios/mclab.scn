@@ -4,7 +4,7 @@
     <ned latitude="63.446827" longitude="10.421906"/> 
     <ocean>
         <water density="1025.0" jerlov="0.20"/>
-        <waves height="0.0"/>
+        <waves height="0.5"/>
         <particles enabled="true"/>
     </ocean>
     <atmosphere>
@@ -16,6 +16,6 @@
   <include file="$(find cybership_simulation_common)/metadata/looks.scn"/>
 
   <include file="$(find cybership_simulation_common)/vessel_models/voyager.scn"/>
-  <include file="$(find cybership_simulation_common)/vessel_models/enterprise.scn"/>
+  <!-- <include file="$(find cybership_simulation_common)/vessel_models/enterprise.scn"/> -->
 
 </scenario>
