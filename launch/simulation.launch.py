@@ -1,78 +1,95 @@
-from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
-from launch_ros.actions import Node
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, TextSubstitution
-from launch.substitution import Substitution
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+import os
+import sys
+
 from ament_index_python.packages import get_package_share_directory
+from launch import LaunchContext, LaunchDescription
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.actions import Node
 
-class ConcatenateSubstitutions(Substitution):
-    def __init__(self, *substitutions):
-        self.substitutions = substitutions
+# vessel_world_resolver.py lives alongside this file; ros2 launch loads this
+# module via SourceFileLoader without adding its directory to sys.path, so
+# make the sibling module importable explicitly.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from vessel_world_resolver import resolve_simulation_launch  # noqa: E402
 
-    def perform(self, context):
-        return ''.join([sub.perform(context) for sub in self.substitutions])
+
+def launch_setup(context: LaunchContext, *args, **kwargs):
+    sim_dir = get_package_share_directory('cybership_simulation_common')
+
+    resolved = resolve_simulation_launch(
+        vessel=LaunchConfiguration('vessel').perform(context),
+        world=LaunchConfiguration('world').perform(context),
+        rendering=LaunchConfiguration('rendering').perform(context).lower() == 'true',
+        sim_share_dir=sim_dir,
+        simulation_data=LaunchConfiguration('simulation_data').perform(context),
+        simulation_rate=LaunchConfiguration('simulation_rate').perform(context),
+        window_res_x=LaunchConfiguration('window_res_x').perform(context),
+        window_res_y=LaunchConfiguration('window_res_y').perform(context),
+        rendering_quality=LaunchConfiguration('rendering_quality').perform(context),
+    )
+
+    sim_node = Node(
+        package='stonefish_ros2',
+        executable=resolved['executable'],
+        namespace='stonefish_ros2',
+        name=resolved['executable'],
+        arguments=resolved['arguments'],
+        parameters=[{
+            'world_file': resolved['world_file'],
+            'vessel_file': resolved['vessel_file'],
+        }],
+        output='screen',
+    )
+
+    return [sim_node]
 
 
 def generate_launch_description():
-    # Get the directories of the involved packages
     sim_dir = get_package_share_directory('cybership_simulation_common')
-    stonefish_ros2_dir = get_package_share_directory('stonefish_ros2')
-
-    simulation_data_default = PathJoinSubstitution([sim_dir, 'data'])
-
-    simulation_data_arg = DeclareLaunchArgument(
-        'simulation_data',
-        default_value=simulation_data_default,
-        description='Path to the simulation data folder'
-    )
-
-    scenario_desc_arg = DeclareLaunchArgument(
-        'task',
-        default_value=PathJoinSubstitution('mclab'),
-        description='Path to the scenario file',
-        choices=['mclab']
-    )
-
-    window_res_x_arg = DeclareLaunchArgument(
-        'window_res_x',
-        default_value='2460',
-        description='Window resolution width'
-    )
-
-    window_res_y_arg = DeclareLaunchArgument(
-        'window_res_y',
-        default_value='1340',
-        description='Window resolution height'
-    )
-
-    quality_arg = DeclareLaunchArgument(
-        'rendering_quality',
-        default_value='high',
-    )
-    
-    scenario_desc_resolved = PathJoinSubstitution([
-        sim_dir,
-        'scenarios', 
-        ConcatenateSubstitutions(LaunchConfiguration('task'), TextSubstitution(text='.scn'))
-    ])
-
-    include_stonefish_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([stonefish_ros2_dir, '/launch/stonefish_simulator.launch.py']),
-        launch_arguments={
-            'simulation_data': LaunchConfiguration('simulation_data'),
-            'scenario_desc': scenario_desc_resolved,
-            'window_res_x': LaunchConfiguration('window_res_x'),
-            'window_res_y': LaunchConfiguration('window_res_y'),
-            'rendering_quality': LaunchConfiguration('rendering_quality')
-        }.items()
-    )
 
     return LaunchDescription([
-        simulation_data_arg,
-        scenario_desc_arg,
-        window_res_x_arg,
-        window_res_y_arg,
-        quality_arg,
-        include_stonefish_launch
+        DeclareLaunchArgument(
+            'vessel',
+            default_value='voyager',
+            description='Vessel to load',
+            choices=['voyager', 'blueboat']
+        ),
+        DeclareLaunchArgument(
+            'world',
+            default_value='mclab',
+            description='World (environment) to load',
+            choices=['mclab']
+        ),
+        DeclareLaunchArgument(
+            'rendering',
+            default_value='true',
+            description='Enable GPU rendering (true/false); false runs the headless simulator'
+        ),
+        DeclareLaunchArgument(
+            'simulation_data',
+            default_value=PathJoinSubstitution([sim_dir, 'data']),
+            description='Path to the simulation data folder'
+        ),
+        DeclareLaunchArgument(
+            'simulation_rate',
+            default_value='100.0',
+            description='Physics update rate [Hz]'
+        ),
+        DeclareLaunchArgument(
+            'window_res_x',
+            default_value='2460',
+            description='Window resolution width'
+        ),
+        DeclareLaunchArgument(
+            'window_res_y',
+            default_value='1340',
+            description='Window resolution height'
+        ),
+        DeclareLaunchArgument(
+            'rendering_quality',
+            default_value='high',
+            description='Rendering quality (low/medium/high)'
+        ),
+        OpaqueFunction(function=launch_setup),
     ])

@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<scenario>
+    <robot name="blueboat" fixed="false" self_collisions="false">
+        <base_link name="Base" type="model" physics="floating">
+            <physical>
+                <!-- Stonefish builds a dynamic body's Bullet collision shape by feeding every
+                     mesh vertex into a convex hull, unsimplified. Base.STL was only ever used
+                     as a Gazebo *visual* mesh (no <collision> in blueboat.sdf) and its raw
+                     720909 triangles blew up that hull construction (0 computed volume,
+                     "Overflow in AABB", object dropped from the simulation). Base_collision.obj
+                     is the convex hull of Base.STL's vertices, precomputed once (1936 faces)
+                     so it's a clean, lightweight solid for physics while Base.STL stays the
+                     visual mesh below. -->
+                <mesh filename="blueboat/Base_collision.obj" scale="1.0"/>
+                <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+            </physical>
+            <visual>
+                <!-- Stonefish's STL loader (GeometryFileUtil.cpp: LoadSTL) only parses the
+                     ASCII STL format (line-by-line "facet"/"vertex" keywords). Base.STL is a
+                     binary STL, so it silently loads as empty/near-empty geometry here -
+                     nothing renders, even though the file itself is a valid, correctly-scaled
+                     mesh (confirmed by parsing its binary header directly). blueboat.obj is
+                     the same geometry (identical vertex/face count), already converted to a
+                     format LoadOBJ actually parses. -->
+                <mesh filename="blueboat/blueboat.obj" scale="1.0"/>
+                <origin xyz="0.0 0.0 0.0" rpy="180.0 0.0 0.0"/>
+            </visual>
+            <material name="blueboat"/>
+            <look name="blueboat"/>
+            <!-- Mass, inertia and CG taken verbatim from blueboat.sdf's <inertial> block
+                 (off-diagonal inertia terms are all zero there, so the diagonal-only
+                 override below is lossless). This overrides the density-based
+                 auto-computed physics that vessels without real SDF data (e.g. Voyager)
+                 still rely on. -->
+            <mass value="20.0"/>
+            <inertia xyz="2.6464 4.06 5.666"/>
+            <cg xyz="0.0 0.0 -0.2" rpy="0.0 0.0 0.0"/>
+        </base_link>
+
+        <!-- No thrusters or sensors yet: see tickets 03 and 04. -->
+		<sensor name="odom" type="odometry" rate="10.0">
+            <link name="Base"/>
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+            <ros_publisher topic="/blueboat/odom"/>
+        </sensor>
+        <world_transform xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    </robot>
+</scenario>
