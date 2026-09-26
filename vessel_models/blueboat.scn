@@ -12,6 +12,11 @@
                      so it's a clean, lightweight solid for physics while Base.STL stays the
                      visual mesh below. -->
                 <mesh filename="blueboat/Base_collision.obj" scale="1.0"/>
+                <!-- The meshes are authored in blueboat.sdf's Gazebo frame (z up, hull
+                     bottom at z=-0.416). Stonefish is NED (z down), so a 180deg roll puts
+                     the hull bottom underwater; unrotated, the boat floats upside down and
+                     the thrusters sit above the waterline (zero thrust). Keep this rotation
+                     identical on <visual>. -->
                 <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
             </physical>
             <visual>
@@ -23,26 +28,79 @@
                      the same geometry (identical vertex/face count), already converted to a
                      format LoadOBJ actually parses. -->
                 <mesh filename="blueboat/blueboat.obj" scale="1.0"/>
-                <origin xyz="0.0 0.0 0.0" rpy="180.0 0.0 0.0"/>
+                <origin xyz="0.0 0.0 -0.0" rpy="3.14159 0.0 0.0"/>
             </visual>
             <material name="blueboat"/>
             <look name="blueboat"/>
-            <!-- Mass, inertia and CG taken verbatim from blueboat.sdf's <inertial> block
+            <!-- Mass, inertia and CG taken from blueboat.sdf's <inertial> block
                  (off-diagonal inertia terms are all zero there, so the diagonal-only
-                 override below is lossless). This overrides the density-based
-                 auto-computed physics that vessels without real SDF data (e.g. Voyager)
-                 still rely on. -->
+                 override below is lossless). z=+0.2 in NED; -0.2 in common frame. -->
             <mass value="20.0"/>
             <inertia xyz="2.6464 4.06 5.666"/>
-            <cg xyz="0.0 0.0 -0.2" rpy="0.0 0.0 0.0"/>
+            <cg xyz="0.0 0.0 0.2" rpy="0.0 0.0 0.0"/>
         </base_link>
 
-        <!-- No thrusters or sensors yet: see tickets 03 and 04. -->
-		<sensor name="odom" type="odometry" rate="10.0">
+        <!-- Two fixed rear thrusters (BlueBoat has no vectored thrust: steering is
+             differential drive), attached directly to Base with no joint/servo.
+             Poses are blueboat.sdf's Motor_Port_Link/Motor_Starboard_Link poses
+             (-0.57675 +-0.29436 -0.3116, roll -pi) re-expressed in this NED body frame,
+             i.e. rolled 180deg like the hull mesh above: y and z change sign, so the
+             motors sit 0.31 m *below* the origin, near the hull bottom. Thrust acts
+             along local +x (forward), as in the SDF.
+             fluid_dynamics at zero advance speed is thrust = Ct*rho*n^2*D^4, the same
+             formula as the SDF's gz-sim-thruster-system plugin, so its real
+             thrust_coefficient (0.004422, used for both directions - the plugin doesn't
+             distinguish them) and propeller_diameter (0.2 m) carry over directly. -->
+        <actuator name="thruster_port" type="thruster">
+            <link name="Base"/>
+            <origin xyz="-0.57675 -0.29436 0.3116" rpy="3.14159 0.0 0.0"/>
+            <!-- PLACEHOLDER: max_setpoint is a maximum propeller speed [rad/s]; the SDF
+                 plugin models none (use_angvel_cmd=0). 400 rad/s is a literature figure
+                 for a BlueRobotics T200-class thruster, not BlueBoat data. -->
+            <specs max_setpoint="400.0" inverted_setpoint="false" normalized_setpoint="false"/>
+            <propeller diameter="0.2" right="true">
+                <!-- propeller.obj is ~0.105 m across natively; scaled to the real 0.2 m. -->
+                <mesh filename="blueboat/propeller.obj" scale="1.9"/>
+                <material name="Neutral"/>
+                <look name="Gray"/>
+            </propeller>
+            <rotor_dynamics type="zero_order"/>
+            <thrust_model type="fluid_dynamics">
+                <thrust_coeff forward="0.004422" reverse="0.004422"/>
+                <!-- PLACEHOLDER: the SDF plugin models no reaction torque, so there is
+                     nothing to derive this from yet. -->
+                <torque_coeff value="0.0"/>
+            </thrust_model>
+        </actuator>
+
+        <actuator name="thruster_starboard" type="thruster">
+            <link name="Base"/>
+            <origin xyz="-0.57675 0.29436 0.3116" rpy="3.14159 0.0 0.0"/>
+            <!-- PLACEHOLDER: see thruster_port. -->
+            <specs max_setpoint="400.0" inverted_setpoint="false" normalized_setpoint="false"/>
+            <propeller diameter="0.2" right="true">
+                <mesh filename="blueboat/propeller.obj" scale="1.9"/>
+                <material name="Neutral"/>
+                <look name="Gray"/>
+            </propeller>
+            <rotor_dynamics type="zero_order"/>
+            <thrust_model type="fluid_dynamics">
+                <thrust_coeff forward="0.004422" reverse="0.004422"/>
+                <!-- PLACEHOLDER: see thruster_port. -->
+                <torque_coeff value="0.0"/>
+            </thrust_model>
+        </actuator>
+
+        <!-- No servos: BlueBoat has no steering/azimuth actuators. -->
+        <sensor name="odom" type="odometry" rate="10.0">
             <link name="Base"/>
             <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
             <ros_publisher topic="/blueboat/odom"/>
         </sensor>
         <world_transform xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+
+        <!-- Setpoints in thruster definition order: [port, starboard], raw rad/s. -->
+        <ros_subscriber thrusters="/blueboat/thrusters"/>
+        <ros_publisher thrusters="/blueboat/thruster_state"/>
     </robot>
 </scenario>
